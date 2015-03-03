@@ -11,6 +11,10 @@ import org.gradle.internal.os.OperatingSystem
 
 class Msbuild extends ConventionTask {
 
+    Map<String, Object> environment
+    def libraryPath
+    def headerPath
+    
     String version
     String msbuildDir
     def solutionFile
@@ -33,7 +37,7 @@ class Msbuild extends ConventionTask {
     String executable
     ProjectFileParser projectParsed
     IExecutableResolver resolver
-
+    
     Msbuild() {
         description = 'Executes MSBuild on the specified project/solution'
         resolver =
@@ -181,8 +185,61 @@ class Msbuild extends ConventionTask {
         }
 
         project.exec {
+            logger.debug "MSBuild-Gradle: the build is about to start, here the environment used: ${this.environment}."
+            environment = this.environment
             commandLine = commandLineArgs
         }
+    }
+    
+    Map<String, Object> getEnvironment() {
+        def env_ = [:] + System.env
+    
+        if (project.hasProperty('environment') && project.environment) {
+            logger.info "MSBuild-Gradle: Detected project-wide environement, we'll use it."
+            env_ << project.environment   
+        }
+    
+        if (environment && environment.size() > 0)
+            env_ << environment
+    
+        def include = this.getHeaderPath()
+        def library = this.getLibraryPath()
+        
+        logger.info("MSBuild-Gradle: Library arg: ${library}")
+        
+        if (include || library)
+            env_ << ['UseEnv' : 'true']
+        
+        if (include) include.each() { env_["INCLUDE"] += ";${it}" }
+        if (library) library.each() { env_["LIB"] += ";${it}" }
+        
+        logger.info("MSBuild-Gradle: environment include: ${env_.INCLUDE}.")
+        logger.info("MSBuild-Gradle: environment library: ${env_.LIB}.")
+        
+        // env_ << this.headerPath
+        // env_ << this.libraryPath
+        
+        return env_
+    }
+    
+    def getLibraryPath() {
+        logger.info("MSBuild-Gradle: Library argument: ${libraryPath} - instanceOf ${libraryPath ? libraryPath.class: "null"}")
+        if (libraryPath instanceof String || libraryPath instanceof GString)
+            return [libraryPath]
+        else if (libraryPath instanceof List<String>)
+            return libraryPath
+        else
+            return null
+    }
+    
+    def getHeaderPath() {
+        logger.info("MSBuild-Gradle: Include argument: ${headerPath} - instanceOf ${headerPath ? headerPath.class : "null"}")
+        if (headerPath instanceof String || headerPath instanceof GString)
+            return [headerPath]
+        else if (headerPath instanceof List<String>)
+            return headerPath
+        else
+            return null
     }
 
     Map getInitProperties() {

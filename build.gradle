@@ -1,9 +1,10 @@
 plugins {
-    id 'nu.studer.plugindev' version '1.0.3'
+  id 'nu.studer.plugindev' version '1.0.3'
+  id "com.jfrog.artifactory" version "3.0.1"
 }
 
 group = 'com.ullink.gradle'
-version = '2.2'
+version = '2.2.1'
 
 ext.ullinkGradleScripts = 'https://raw.github.com/gluck/gradle-scripts/master'
 apply from: "${ext.ullinkGradleScripts}/task-rules.gradle"
@@ -14,6 +15,10 @@ apply plugin: 'groovy'
 description 'Gradle plugin for MSBuild project build.'
 
 dependencies {
+  compile gradleApi()
+  compile localGroovy()
+
+
     testCompile 'junit:junit:4.11'
     testCompile group: 'org.spockframework', name: 'spock-core', version: '0.7-groovy-2.0', transitive: false
     compile 'net.java.dev.jna:jna:3.5.0'
@@ -21,13 +26,13 @@ dependencies {
     compile 'com.google.guava:guava:16.0.1'
 }
 
-bintray {
-    // to remove when upgraded plugindev to 1.0.4
-    user project.properties.bintrayUser
-    key project.properties.bintrayApiKey
-    pkg.repo = 'gradle-plugins'
-    pkg.version.gpg.sign = true
-}
+// bintray {
+//     // to remove when upgraded plugindev to 1.0.4
+//     user project.properties.bintrayUser
+//     key project.properties.bintrayApiKey
+//     pkg.repo = 'gradle-plugins'
+//     pkg.version.gpg.sign = true
+// }
 
 plugindev {
     pluginId 'com.ullink.msbuild'
@@ -45,3 +50,29 @@ plugindev {
 }
 
 
+// WitBe Added
+// Artifactory Plugin Configuration (custom artifactory DSL)
+artifactory {
+  contextUrl = "http://192.168.250.126:8081/artifactory"
+  publish {
+    repository {
+      repoKey = 'plugins-release-local'
+      username = "${artifactory_user}"
+      password = "${artifactory_password}"
+      maven = true
+    }
+    defaults {
+      publications('plugin')
+      publishBuildInfo = true
+      publishPom = false
+    }
+  }
+  resolve {
+    repository {
+      repoKey = 'repo'
+      username = "${artifactory_user}"
+      password = "${artifactory_password}"
+      maven = true
+    }
+  }
+}
